@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8" />
+<title>Kick Stream Activity</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #0b0b0b;
+    color: white;
+    font-family: system-ui, Arial;
+  }
+  .box {
+    padding: 16px;
+  }
+  input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #3cff00;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  iframe {
+    margin-top: 14px;
+    width: 100%;
+    height: 70vh;
+    border: none;
+    border-radius: 14px;
+  }
+</style>
+</head>
+
+<body>
+  <div class="box">
+    <h3>🎥 Kick Stream</h3>
+
+    <input id="channel" placeholder="اسم قناة Kick أو الرابط">
+    <button onclick="play()">تشغيل البث</button>
+
+    <iframe
+      id="player"
+      allow="autoplay; fullscreen"
+      allowfullscreen
+    ></iframe>
+  </div>
+
+<script>
+function play() {
+  let v = document.getElementById("channel").value.trim();
+  if (!v) return;
+
+  let channel = v.includes("kick.com/")
+    ? v.split("kick.com/")[1].replace("/", "")
+    : v;
+
+  document.getElementById("player").src =
+    "https://player.kick.com/" + channel;
+}
+</script>
+</body>
+</html>
