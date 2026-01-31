@@ -1,50 +1,153 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamEx Activity</title>
-    
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://streamex.net https://*.streamex.net; script-src 'self' 'unsafe-inline' https://unpkg.com;">
+    <title>LEGEND TV</title>
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://player.kick.com https://kick.com https://player.twitch.tv; script-src 'self' 'unsafe-inline' https://unpkg.com;">
     
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #000; }
-        
-        /* جعل الموقع يملأ الشاشة */
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
+        :root {
+            --bg: #000000;
+            --sidebar: #101010;
+            --kick-color: #53FC18;
+            --text-color: #ffffff;
+        }
+
+        body {
+            margin: 0; background-color: var(--bg); color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* القائمة الجانبية */
+        .sidebar {
+            width: 250px; background-color: var(--sidebar);
+            display: flex; flex-direction: column; padding: 20px;
+            border-left: 1px solid #222;
+        }
+
+        .logo {
+            color: var(--kick-color); font-size: 24px; font-weight: bold;
+            text-align: center; margin-bottom: 30px; letter-spacing: 2px;
+            text-transform: uppercase; border-bottom: 2px solid var(--kick-color);
+            padding-bottom: 10px;
+        }
+
+        .menu-title { font-size: 12px; color: #666; margin-bottom: 10px; font-weight: bold; }
+
+        .streamer-btn {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px; margin-bottom: 5px; cursor: pointer;
+            border-radius: 8px; transition: 0.3s; color: #ccc;
+        }
+
+        .streamer-btn:hover, .streamer-btn.active {
+            background-color: #222; color: var(--kick-color);
+        }
+
+        .live-dot {
+            width: 8px; height: 8px; background-color: red;
+            border-radius: 50%; box-shadow: 0 0 5px red;
+        }
+
+        /* منطقة العرض */
+        .main { flex: 1; display: flex; flex-direction: column; position: relative; }
+
+        .top-nav {
+            padding: 15px; background-color: var(--sidebar);
+            display: flex; gap: 10px; border-bottom: 1px solid #222;
+        }
+
+        input {
+            flex: 1; padding: 10px; border-radius: 5px; border: none;
+            background: #222; color: white; outline: none;
+        }
+
+        button {
+            background: var(--kick-color); color: black; border: none;
+            padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer;
+        }
+
+        .video-wrapper { flex: 1; background: black; position: relative; }
+
+        iframe { width: 100%; height: 100%; border: none; }
+
+        .status-msg {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); color: #555;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <iframe id="websiteFrame" 
-            src="https://streamex.net/" 
-            allowfullscreen="true" 
-            allow="autoplay; fullscreen; clipboard-write; encrypted-media">
-    </iframe>
+    <div class="sidebar">
+        <div class="logo">LEGEND TV</div>
+        
+        <div class="menu-title">القنوات المفضلة</div>
+        <div class="streamer-btn" onclick="play('xqc')">
+            <div class="live-dot"></div> xQc
+        </div>
+        <div class="streamer-btn" onclick="play('adinross')">
+            <div class="live-dot"></div> Adin Ross
+        </div>
+        <div class="streamer-btn" onclick="play('roshtein')">
+            <div class="live-dot"></div> Roshtein
+        </div>
+        <div class="streamer-btn" onclick="play('trainwreckstv')">
+            <div class="live-dot"></div> Trainwrecks
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="top-nav">
+            <input type="text" id="customStream" placeholder="ابحث عن أي قناة أخرى...">
+            <button onclick="manualPlay()">شاهد</button>
+        </div>
+
+        <div class="video-wrapper">
+            <div id="status" class="status-msg">اختر قناة لبدء البث</div>
+            <iframe id="player" allowfullscreen="true" allow="autoplay; fullscreen"></iframe>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/@discord/embedded-app-sdk@1.0.0/dist/index.js"></script>
     <script>
-        // المعرف الخاص بك
+        // ضع رقم الـ Client ID الخاص بك هنا
         const CLIENT_ID = "1242730657264697374";
         const discordSdk = new window.discord.DiscordSDK(CLIENT_ID);
 
-        async function keepAlive() {
+        async function init() {
             try {
-                // إخبار ديسكورد أن التطبيق يعمل
                 await discordSdk.ready();
-                console.log("Discord Handshake Success");
-            } catch (e) {
-                console.log("Running outside Discord or SDK error");
+                console.log("Discord Connected");
+            } catch(e) {
+                console.log("Outside Discord");
             }
         }
 
-        keepAlive();
-    </script>
+        function play(name) {
+            const frame = document.getElementById('player');
+            const status = document.getElementById('status');
+            const domain = window.location.hostname; // يأخذ رابط Vercel تلقائياً
 
+            // الرابط السحري الذي يعمل داخل ديسكورد
+            const url = `https://player.kick.com/${name}?autoplay=true&muted=false&parent=${domain}&parent=discord.com`;
+
+            status.style.display = 'none';
+            frame.src = url;
+            
+            // تحديث الشكل
+            document.querySelectorAll('.streamer-btn').forEach(b => b.classList.remove('active'));
+        }
+
+        function manualPlay() {
+            const val = document.getElementById('customStream').value.trim();
+            if(val) play(val);
+        }
+
+        init();
+    </script>
 </body>
 </html>
