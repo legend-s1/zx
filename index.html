@@ -16,7 +16,7 @@
         button { padding: 8px 20px; background: var(--red); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
         
         .grid { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .card { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.3s; }
+        .card { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; }
         .card:hover { transform: scale(1.05); }
         .poster { width: 100%; height: 210px; object-fit: cover; }
         .title { padding: 8px; font-size: 13px; font-weight: bold; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -24,13 +24,20 @@
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 200; display: none; }
         .close { position: absolute; top: 15px; right: 15px; background: var(--red); color: white; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; z-index: 201; font-weight: bold; }
         iframe { width: 100%; height: 100%; border: none; }
+
+        /* منطقة الأخطاء (للتشخيص) */
+        #debugLog { 
+            height: 100px; background: #220000; color: #ffaaaa; 
+            font-family: monospace; padding: 10px; font-size: 12px; 
+            overflow-y: scroll; border-top: 1px solid red; display: none;
+        }
     </style>
 </head>
 <body>
 
     <div class="nav">
         <div class="brand">LEGEND</div>
-        <input type="text" id="searchBox" placeholder="ابحث عن فيلم أو أنمي..." onkeypress="if(event.key==='Enter') doSearch()">
+        <input type="text" id="searchBox" placeholder="اكتب اسم الفيلم أو المسلسل..." onkeypress="if(event.key==='Enter') doSearch()">
         <button onclick="doSearch()">بحث</button>
     </div>
 
@@ -41,6 +48,8 @@
         </div>
     </div>
 
+    <div id="debugLog"></div>
+
     <div class="modal" id="playerModal">
         <button class="close" onclick="closeVideo()">إغلاق ✕</button>
         <iframe id="vidFrame" allowfullscreen></iframe>
@@ -48,24 +57,45 @@
 
     <script src="https://unpkg.com/@discord/embedded-app-sdk@1.0.0/dist/index.js"></script>
     <script>
-        // مفتاحك الصحيح
         const API_KEY = "1e8294cecf09cb56f48e845a702f7313"; 
-        
-        const sdk = new window.discord.DiscordSDK("1242730657264697374");
-        async function init() { try { await sdk.ready(); } catch(e){} } init();
+        const discordSdk = new window.discord.DiscordSDK("1242730657264697374");
+
+        function log(msg) {
+            const d = document.getElementById('debugLog');
+            d.style.display = 'block';
+            d.innerHTML += `<div>${msg}</div>`;
+            console.log(msg);
+        }
+
+        async function init() { 
+            try { 
+                await discordSdk.ready(); 
+                log("Discord SDK Connected ✅");
+            } catch(e){ 
+                log("SDK Error: " + e); 
+            } 
+        } 
+        init();
 
         async function doSearch() {
             const query = document.getElementById('searchBox').value;
             if (!query) return;
             
             const area = document.getElementById('resultsArea');
-            area.innerHTML = '<p style="text-align:center; grid-column:1/-1;">جاري البحث...</p>';
+            area.innerHTML = '<p style="text-align:center; grid-column:1/-1;">جاري الاتصال...</p>';
 
             try {
-                // لاحظ: نستخدم الرابط المختصر /tmdb بدلاً من الرابط الكامل
-                const req = await fetch(`/tmdb/3/search/multi?api_key=${API_KEY}&query=${query}&language=ar-SA`);
-                const data = await req.json();
+                log(`Searching for: ${query}`);
                 
+                // استخدام الرابط المباشر بدلاً من البروكسي
+                const url = `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${query}&language=ar-SA`;
+                
+                const req = await fetch(url);
+                if (!req.ok) throw new Error(`HTTP Error: ${req.status}`);
+                
+                const data = await req.json();
+                log(`Found ${data.results?.length || 0} results`);
+
                 area.innerHTML = '';
                 
                 if (!data.results || data.results.length === 0) {
@@ -78,31 +108,29 @@
                     
                     const el = document.createElement('div');
                     el.className = 'card';
-                    // نستخدم /img بدلاً من رابط الصورة المباشر
-                    const img = item.poster_path ? `/img/t/p/w500${item.poster_path}` : 'https://via.placeholder.com/500x750';
+                    const img = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'https://via.placeholder.com/500x750';
                     
                     el.innerHTML = `
                         <img src="${img}" class="poster">
                         <div class="title">${item.title || item.name}</div>
                     `;
+                    // هنا نستخدم البروكسي فقط للفيديو
                     el.onclick = () => play(item.id, item.media_type);
                     area.appendChild(el);
                 });
             } catch (e) {
-                console.error(e);
-                area.innerHTML = '<p style="text-align:center; color:red; grid-column:1/-1;">خطأ في الاتصال. تأكد من إعدادات البروكسي.</p>';
+                log("Error: " + e.message);
+                area.innerHTML = `<p style="text-align:center; color:red; grid-column:1/-1;">حدث خطأ: ${e.message}</p>`;
             }
         }
 
         function play(id, type) {
             const modal = document.getElementById('playerModal');
             const frame = document.getElementById('vidFrame');
-            
-            // التغيير هنا: نستخدم /vid بدلاً من https://vidsrc.xyz
-            // هذا يمرر الفيديو عبر "نفق" ديسكورد الآمن
             const typeStr = type === 'movie' ? 'movie' : 'tv';
-            frame.src = `/vid/embed/${typeStr}/${id}`;
             
+            // استخدام البروكسي للفيديو لتجنب الحظر
+            frame.src = `/vid/embed/${typeStr}/${id}`;
             modal.style.display = 'block';
         }
 
