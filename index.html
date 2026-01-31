@@ -60,19 +60,20 @@
         const API_KEY = "1e8294cecf09cb56f48e845a702f7313"; 
         const discordSdk = new window.discord.DiscordSDK("1242730657264697374");
 
+        // دالة لتسجيل الأخطاء على الشاشة
         function log(msg) {
             const d = document.getElementById('debugLog');
             d.style.display = 'block';
-            d.innerHTML += `<div>${msg}</div>`;
+            d.innerHTML += `<div>> ${msg}</div>`;
             console.log(msg);
         }
 
         async function init() { 
             try { 
                 await discordSdk.ready(); 
-                log("Discord SDK Connected ✅");
+                log("تم الاتصال بـ Discord SDK بنجاح ✅");
             } catch(e){ 
-                log("SDK Error: " + e); 
+                log("فشل الاتصال بـ SDK: " + e); 
             } 
         } 
         init();
@@ -85,16 +86,19 @@
             area.innerHTML = '<p style="text-align:center; grid-column:1/-1;">جاري الاتصال...</p>';
 
             try {
-                log(`Searching for: ${query}`);
+                log(`جاري البحث عن: ${query}`);
                 
-                // استخدام الرابط المباشر بدلاً من البروكسي
+                // 🔥 هنا التغيير: نستخدم الرابط المباشر بدلاً من البروكسي لتجاوز مشكلة الإعدادات
                 const url = `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${query}&language=ar-SA`;
                 
                 const req = await fetch(url);
-                if (!req.ok) throw new Error(`HTTP Error: ${req.status}`);
+                
+                if (!req.ok) {
+                    throw new Error(`خطأ من السيرفر: ${req.status}`);
+                }
                 
                 const data = await req.json();
-                log(`Found ${data.results?.length || 0} results`);
+                log(`تم العثور على ${data.results?.length || 0} نتيجة`);
 
                 area.innerHTML = '';
                 
@@ -108,19 +112,20 @@
                     
                     const el = document.createElement('div');
                     el.className = 'card';
+                    // نستخدم الرابط المباشر للصور أيضاً
                     const img = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'https://via.placeholder.com/500x750';
                     
                     el.innerHTML = `
                         <img src="${img}" class="poster">
                         <div class="title">${item.title || item.name}</div>
                     `;
-                    // هنا نستخدم البروكسي فقط للفيديو
+                    // هنا نستخدم البروكسي فقط للفيديو لأنه ضروري
                     el.onclick = () => play(item.id, item.media_type);
                     area.appendChild(el);
                 });
             } catch (e) {
-                log("Error: " + e.message);
-                area.innerHTML = `<p style="text-align:center; color:red; grid-column:1/-1;">حدث خطأ: ${e.message}</p>`;
+                log("حدث خطأ: " + e.message);
+                area.innerHTML = `<p style="text-align:center; color:red; grid-column:1/-1;">فشل البحث. انظر للصندوق الأحمر بالأسفل.</p>`;
             }
         }
 
@@ -129,7 +134,7 @@
             const frame = document.getElementById('vidFrame');
             const typeStr = type === 'movie' ? 'movie' : 'tv';
             
-            // استخدام البروكسي للفيديو لتجنب الحظر
+            // استخدام البروكسي للفيديو (ضروري جداً لتجنب الحظر)
             frame.src = `/vid/embed/${typeStr}/${id}`;
             modal.style.display = 'block';
         }
