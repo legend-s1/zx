@@ -97,11 +97,11 @@
         function play(id, type) {
             const modal = document.getElementById('playerModal');
             const frame = document.getElementById('vidFrame');
-            const typeStr = type === 'movie' ? 'movie' : 'tv';
             
-            // هنا نستخدم الرابط المباشر لأن الفيديو يحتاج نطاق كامل
-            // لكن بما أننا أضفنا /vid في البروكسي، ديسكورد سيتعرف عليه
-            frame.src = `https://vidsrc.xyz/embed/${typeStr}/${id}`;
+            // التغيير هنا: نستخدم /vid بدلاً من https://vidsrc.xyz
+            // هذا يمرر الفيديو عبر "نفق" ديسكورد الآمن
+            const typeStr = type === 'movie' ? 'movie' : 'tv';
+            frame.src = `/vid/embed/${typeStr}/${id}`;
             
             modal.style.display = 'block';
         }
